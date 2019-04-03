@@ -96,7 +96,16 @@ nameInt n = case compare n 0 of
       , (4,"four"),  (5,"five"),  (6,"six")
       , (7,"seven"), (8,"eight"), (9,"nine") ]
 
-{- Names 1000^(n+1) -}
+-- Names 10^n give n
+power10 :: Integral a => a -> String
+power10 n | n < 3 = nameInt (10^n)
+power10 n = let
+   (d,p) = divMod n 3
+   pfx = case p of { 0 -> ""; 1 -> "ten "; 2 -> "one hundred " }
+   zil = nameLarge (d - 1)
+   in pfx ++ zil
+
+-- Names 1000^(n+1) given n
 nameLarge :: Integral a => a -> String
 nameLarge n | n < 0 = error "positive values only"
 nameLarge 0 = "thousand"         -- Special case (see note below)
