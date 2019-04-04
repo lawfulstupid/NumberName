@@ -8,7 +8,7 @@
 module NumberName.ParseNum where
 
 import AbLib.Control.Parser
-import qualified AbLib.Control.ParserUtils as Parsers
+import AbLib.Control.ParserUtils (ws, digit)
 import NumberName.NameNum
 import Data.List ((\\), isSuffixOf)
 import Data.Char (toLower)
@@ -19,73 +19,83 @@ parseInt = do
    inputMap $ map toLower
    -- replacements [(",",""), ("illions","illion"), ("thousands","thousand")]
    intParser
-   where
+   -- where
 
-   {- Parser for all integer values. -}
-   intParser :: Integral a => Parser a
-   intParser = mconcat
-      [ match "negative" >> Parsers.whitespace >> fmap negate intParser -- negatives
-      , fmap (const 0) $ match "zero"                          -- zero
-      , Parser $ \s -> apply (posParser $ getOrder s) s                 ] -- positives
+{- Parser for all integer values. -}
+intParser :: Integral a => Parser a
+intParser = mconcat
+   [ match "negative" >> ws >> fmap negate intParser   -- negatives
+   , fmap (const 0) $ match "zero"                             -- zero
+   , Parser $ \s -> apply (posParser $ getOrder s) s ]         -- positives
+
+{- Parser for integers strictly between 0 and 1000^(n+2). -}
+posParser :: Integral a => a -> Parser a
+posParser 0 = let
+   name = matchOne ["thousand","nillion"]         -- generosity
+   this = fmap (*1000) (digit3 << ws << name)
+   next = mconcat [return 0, term, ws >> digit3]
+   in digit3 <|> liftA2 (+) this next
+posParser n = let
+   factor = 1000 ^ (n + 1)
+   this = fmap (factor*) (digit3 << ws << match (nameLarge n))
+   next = mconcat [return 0, term, ws >> posParser (n-1)]
+   in posParser (n-1) <|> liftA2 (+) this next
+
+{- Parser for symbolic representation of numbers. -}
+sym :: (Integral a, Integral b, Show a) => [a] -> Parser b
+sym ns = mconcat [matchAs (show n) (fromIntegral n) | n <- ns]
+   -- need to convert between Integral types to avoid Show constraint.
+
+{- Parser for names of numbers. Practical only for small-scale. -}
+parseByName :: Integral a => [a] -> Parser a
+parseByName ns = mconcat [matchAs (nameInt n) n | n <- ns]
+
+{- Parser for all forms of a 3-digit number. -}
+digit3 :: Integral a => Parser a
+digit3 = let
+   hun = fmap (*100) digit1 << ws << match "hundred"   -- match "`x` hundred" as 100*x
+   -- Parser enumerates possible forms of a 3-digit number:
+   in mconcat
+      [ sym [100..999]                 -- symbolic representation
+      , digit2                         -- 2-digit number
+      , liftA2 (+) hun term ]  -- full three-digit number
    
-   {- Parser for integers strictly between 0 and 1000^(n+2). -}
-   posParser :: Integral a => a -> Parser a
-   posParser 0 = let
-      name = matchOne ["thousand","nillion"]         -- generosity
-      this = fmap (*1000) (digit3 << Parsers.whitespace << name)
-      next = mconcat [return 0, term, Parsers.whitespace >> digit3]
-      in digit3 <|> liftA2 (+) this next
-   posParser n = let
-      factor = 1000 ^ (n + 1)
-      this = fmap (factor*) (digit3 << Parsers.whitespace << match (nameLarge n))
-      next = mconcat [return 0, term, Parsers.whitespace >> posParser (n-1)]
-      in posParser (n-1) <|> liftA2 (+) this next
-   
-   {- Parser for symbolic representation of numbers. -}
-   sym :: (Integral a, Integral b, Show a) => [a] -> Parser b
-   sym ns = mconcat [matchAs (show n) (fromIntegral n) | n <- ns]
-      -- need to convert between Integral types to avoid Show constraint.
-   
-   {- Parser for names of numbers. Practical only for small-scale. -}
-   parseExact :: (Integral a) => [a] -> Parser a
-   parseExact ns = mconcat [matchAs (nameInt n) n | n <- ns]
-   
-   {- Parser for all forms of a 3-digit number. -}
-   digit3 :: Integral a => Parser a
-   digit3 = let
-      hun = fmap (*100) digit1 << Parsers.whitespace << match "hundred"   -- match "`x` hundred" as 100*x
-      -- Parser enumerates possible forms of a 3-digit number:
-      in mconcat
-         [ sym [100..999]                 -- symbolic representation
-         , digit2                         -- 2-digit number
-         , liftA2 (+) hun term ]  -- full three-digit number
-      
-   {- Parser for final two digits non-inital digits. -}
-   term :: Integral a => Parser a
-   term = (optional (Parsers.whitespace >> match "and") >> Parsers.whitespace >> digit2) <|> return 0
-   
-   {- Parser for all forms of a 2-digit number. -}
-   digit2 :: Integral a => Parser a
-   digit2 = let
-      tens = parseExact [20,30..90]       -- match strict multiples of ten
-      join = match " " <|> Parsers.whitespace <|> match "-" -- <|> match ""
-      unit = return 0 <|> (join >> digit1)
-      -- Parser enumerates possible forms of a 2-digit number:
-      in mconcat
-         [ sym [10..99]                   -- symbolic representation
-         , digit1                         -- 1-digit number
-         , parseExact [10..19]            -- teen number
-         , liftA2 (+) tens unit ]         -- "`x`ty `y`"
-   
-   {- Parser for all forms of a 1-digit number. -}
-   digit1 :: Integral a => Parser a
-   digit1 = sym [1..9] <|> parseExact [1..9]
-   
-   {- Computes the order of a named number by finding it's first "zillion". -}
-   getOrder :: Integral a => String -> a
-   getOrder s = case filter (isSuffixOf "illion") (words s) of
-      [ ] -> 0
-      [x] -> fullParse parseLarge x
+{- Parser for final two digits non-inital digits. -}
+term :: Integral a => Parser a
+term = (optional (ws >> match "and") >> ws >> digit2) <|> return 0
+
+{- Parser for all forms of a 2-digit number. -}
+digit2 :: Integral a => Parser a
+digit2 = let
+   tens = parseByName [20,30..90]       -- match strict multiples of ten
+   join = match " " <|> ws <|> match "-" -- <|> match ""
+   unit = return 0 <|> (join >> digit1)
+   -- Parser enumerates possible forms of a 2-digit number:
+   in mconcat
+      [ sym [10..99]                   -- symbolic representation
+      , digit1                         -- 1-digit number
+      , parseByName [10..19]            -- teen number
+      , liftA2 (+) tens unit ]         -- "`x`ty `y`"
+
+d2 :: Integral a => Parser a
+d2 = digit1
+   <|> sym [10..99]
+   <|> parseByName [10..19]
+   <|> do
+      x1 <- parseByName [20,30..90]
+      match "-" <|> ws
+      x0 <- parseByName [1..9] <|> return 0
+      return (x1 + x0)
+
+{- Parser for all forms of a 1-digit number. -}
+digit1 :: Integral a => Parser a
+digit1 = fmap (fromInteger . read) (exactly 1 digit) <|> parseByName [1..9]
+
+{- Computes the order of a named number by finding it's first "zillion". -}
+getOrder :: Integral a => String -> a
+getOrder s = case filter (isSuffixOf "illion") (words s) of
+   [ ] -> 0
+   [x] -> fullParse parseLarge x
    
 -- Parser for large number orders (illion).
 -- Inverse of nameLarge.
@@ -122,20 +132,20 @@ parseLarge = do
       [ return             0
       , matchAs "un"       1
       , matchAs "duo"      2
-      , matchAs "tres"     3 << lookAhead (matchOne "coqtv")
-      , matchAs "tre"      3 << lookAhead (matchOne "abdefghijklmnprsuwxyz")
+      , matchAs "tres"     3 << peek (matchOne "coqtv")
+      , matchAs "tre"      3 << peek (matchOne "abdefghijklmnprsuwxyz")
       , matchAs "quattuor" 4
       , matchAs "quin"     5
-      , matchAs "sex"      6 << lookAhead (matchOne "co")
-      , matchAs "ses"      6 << lookAhead (matchOne "qtv")
-      , matchAs "se"       6 << lookAhead (matchOne "abdefghijklmnprsuwxyz")
-      , matchAs "septen"   7 << lookAhead (matchOne "cdqst")
-      , matchAs "septem"   7 << lookAhead (matchOne "ov")
-      , matchAs "septe"    7 << lookAhead (matchOne "abefghijklmnpruwxyz")
+      , matchAs "sex"      6 << peek (matchOne "co")
+      , matchAs "ses"      6 << peek (matchOne "qtv")
+      , matchAs "se"       6 << peek (matchOne "abdefghijklmnprsuwxyz")
+      , matchAs "septen"   7 << peek (matchOne "cdqst")
+      , matchAs "septem"   7 << peek (matchOne "ov")
+      , matchAs "septe"    7 << peek (matchOne "abefghijklmnpruwxyz")
       , matchAs "octo"     8
-      , matchAs "noven"    9 << lookAhead (matchOne "cdqst")
-      , matchAs "novem"    9 << lookAhead (matchOne "ov")
-      , matchAs "nove"     9 << lookAhead (matchOne "abefghijklmnpruwxyz")    ]
+      , matchAs "noven"    9 << peek (matchOne "cdqst")
+      , matchAs "novem"    9 << peek (matchOne "ov")
+      , matchAs "nove"     9 << peek (matchOne "abefghijklmnpruwxyz")    ]
    
    {- Simple table of prefixes. -}
    table :: [[String]]
