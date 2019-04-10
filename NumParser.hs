@@ -42,9 +42,9 @@ posParser n = let
    in posParser (n-1) <|> liftA2 (+) this next
 
 {- Parser for symbolic representation of numbers. -}
-sym :: (Integral a, Integral b, Show a) => [a] -> Parser b
-sym ns = mconcat [matchAs (show n) (fromIntegral n) | n <- ns]
-   -- need to convert between Integral types to avoid Show constraint.
+sym :: Integral a => Int -> Parser a
+sym n = fmap (fromIntegral . read . reverse)
+   $ exactly n digit
 
 {- Parser for names of numbers. Practical only for small-scale. -}
 parseByName :: Integral a => [a] -> Parser a
@@ -52,48 +52,39 @@ parseByName ns = mconcat [matchAs (nameInt n) n | n <- ns]
 
 {- Parser for all forms of a 3-digit number. -}
 digit3 :: Integral a => Parser a
-digit3 = let
-   hun = fmap (*100) digit1 << ws << match "hundred"   -- match "`x` hundred" as 100*x
-   -- Parser enumerates possible forms of a 3-digit number:
-   in mconcat
-      [ sym [100..999]                 -- symbolic representation
-      , digit2                         -- 2-digit number
-      , liftA2 (+) hun term ]  -- full three-digit number
-   
-{- Parser for final two digits non-inital digits. -}
+digit3 = mempty
+   <> digit2                     -- simpler case
+   <> sym 3                      -- numeric case
+   <> do                         -- general case
+      hun <- fmap (*100) digit1     -- first digit
+          << ws
+          << match "hundred"
+      ten <- return 0 <> term       -- second, third digit
+      return (hun + ten)
+
+{- Parser for the last two digits of any number. -}
 term :: Integral a => Parser a
-term = (optional (ws >> match "and") >> ws >> digit2) <|> return 0
+term = ws >> match "and" >> ws >> digit2
 
 {- Parser for all forms of a 2-digit number. -}
 digit2 :: Integral a => Parser a
-digit2 = let
-   tens = parseByName [20,30..90]       -- match strict multiples of ten
-   join = match " " <|> ws <|> match "-" -- <|> match ""
-   unit = return 0 <|> (join >> digit1)
-   -- Parser enumerates possible forms of a 2-digit number:
-   in mconcat
-      [ sym [10..99]                   -- symbolic representation
-      , digit1                         -- 1-digit number
-      , parseByName [10..19]            -- teen number
-      , liftA2 (+) tens unit ]         -- "`x`ty `y`"
-
-d2 :: Integral a => Parser a
-d2 = digit1
-   <|> sym [10..99]
-   <|> parseByName [10..19]
-   <|> do
-      x1 <- parseByName [20,30..90]
-      match "-" <|> ws
-      x0 <- parseByName [1..9] <|> return 0
+digit2 = mempty
+   <> digit1                              -- simpler case
+   <> sym 2                               -- numeric case
+   <> parseByName [10..19]                -- matches teens
+   <> do                                  -- general case
+      x1 <- parseByName [20,30..90]          -- first digit
+      ws <> match "-"                        -- digit joiner
+      x0 <- parseByName [1..9] <> return 0   -- last digit
       return (x1 + x0)
 
 {- Parser for all forms of a 1-digit number. -}
 digit1 :: Integral a => Parser a
-digit1 = fmap (fromInteger . read) (exactly 1 digit) <|> parseByName [1..9]
+digit1 = sym 1 <|> parseByName [1..9]
 
 {- Computes the order of a named number by finding it's first "zillion". -}
 getOrder :: Integral a => String -> a
-getOrder s = case filter (isSuffixOf "illion") (words s) of
+getOrder s = case filter (isSuffixOf "illion") $ words s of
    [ ] -> 0
    [x] -> fullParse parseLarge x
    
