@@ -6,6 +6,7 @@ import AbLib.Data.List ((!?))
 import AbLib.Control.Safe (safe)
 import Data.Maybe (fromJust, listToMaybe, catMaybes)
 import Control.Applicative (liftA2)
+import Text.Printf
 
 {-
    DIGIT := one | two | three | four | five | six | seven | eight | nine
@@ -96,11 +97,21 @@ nameInt n = case compare n 0 of
       , (7,"seven"), (8,"eight"), (9,"nine") ]
 
 
+{- Approximately names b^n given b and n -}
+namePow :: (Floating a, RealFrac a, PrintfArg a) => a -> a -> String
+namePow b n = let
+   (e,m) = properFraction (n * logBase 10 b)
+   (d,p) = e `divMod` 3
+   illion = nameLarge (d-1)
+   prefix = printf "%.2f" (10 ** (m + fromInteger p))
+   in prefix ++ " " ++ illion
+
+
 {- Names 10^n given n -}
 namePow10 :: Integral a => a -> String
 namePow10 n | n < 0 = errorWithoutStackTrace "negative value"
 namePow10 n = let
-   (d,p) = divMod n 3
+   (d,p) = n `divMod` 3
    prefix = nameInt (10 ^ p)
    illion = safe nameLarge (d - 1)
    in prefix ++ (maybe "" id $ fmap (' ':) illion)
