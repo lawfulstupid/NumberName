@@ -1,0 +1,23 @@
+<integer> ::= 'negative' <natural> | <natural>
+<natural> ::= # TODO 
+
+<join>   ::= '-' | '' | <ws>
+<digit>  ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
+
+<digit0> ::= 'zero'
+<digit1> ::= <digit>				# numeric
+	| 'one' | 'two' | 'three' | 'four' | 'five' | 'six' | 'seven' | 'eight' | 'nine'
+	
+<tens>   ::= 'twenty' | 'thirty' | 'forty' | 'fifty' | 'sixty' | 'seventy' | 'eighty' | 'ninety'
+<teen>   ::= 'ten' | 'eleven' | 'twelve' | 'thirteen' | 'fourteen' | 'fifteen' | 'sixteen'| 'seventeen' | 'eighteen' | 'nineteen'
+<digit2> ::= <digit> <digit>	# numeric
+	| <digit1>						# [1..9]
+	| <teen>							# [10..19]
+	| <tens>							# [20,30..90]
+	| <tens> <join> <digit1>	# other
+
+<hundred> ::= <digit1> <ws> 'hundred'
+<digit3> ::= <digit> <digit> <digit>		# numeric
+	| <digit2>										# [20..99]
+	| <hundred>										# [100,200..900]
+	| <hundred> <ws> 'and' <ws> <digit2>	# other
