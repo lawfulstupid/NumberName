@@ -96,6 +96,16 @@ nameInt n = case compare n 0 of
       , (4,"four"),  (5,"five"),  (6,"six")
       , (7,"seven"), (8,"eight"), (9,"nine") ]
 
+
+{- Names 10^n -}
+namePow10 :: Integral a => a -> String
+namePow10 n = let
+   (a,b) = n `divMod` 3
+   prefix = nameInt (10^b)
+   large = nameLarge (a-1)
+   in prefix ++ " " ++ large
+
+
 {- Names 1000^(n+1) -}
 nameLarge :: Integral a => a -> String
 nameLarge n | n < 0 = error "positive values only"
