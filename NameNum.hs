@@ -28,7 +28,7 @@ import Text.Printf
 {- Gives the full name of an Integral value. -}
 nameInt :: Integral a => a -> String
 nameInt n = case compare n 0 of
-   LT -> "negative" ++ nameInt (negate n)
+   LT -> "negative " ++ nameInt (negate n)
    EQ -> "zero"
    GT -> fromJust $ build $ split n
    where
