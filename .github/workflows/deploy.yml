@@ -1,0 +1,44 @@
+name: Page Deploy
+
+env:
+  NODE_VERSION: '20'
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  id-token: write
+  contents: write
+  pages: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@master
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Code build
+        run: |
+          npm install
+          npm run build
+      - name: Set up pages
+        uses: actions/configure-pages@v3
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: 'dist'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
