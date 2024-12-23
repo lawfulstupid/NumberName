@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Number Namer</title>
+	<script src="number-name.js"></script>
+</head>
+<body style="font-family: sans-serif">
+	<input id="input" type="number"></input>
+	<button onclick="getName()">Get Name</button>
+	<br><br>
+	<span id="output"></span>
+</body>
+<script>
+	function getName() {
+		var number = BigInt(document.getElementById('input').value);
+		document.getElementById('output').innerHTML = nameInt(number);
+	}
+</script>
+</html>

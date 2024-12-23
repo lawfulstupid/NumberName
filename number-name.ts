@@ -193,8 +193,3 @@ function extra(s: string, c: string): string {
   }
   return '';
 }
-
-module.exports = {
-  nameInt,
-  nameLarge
-}
