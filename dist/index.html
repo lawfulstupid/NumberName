@@ -14,20 +14,29 @@
 <script>
 	function getName() {
 		var input = document.getElementById('input').value;
-		var number = 0;
 		var output = document.getElementById('output');
 		try {
-			number = BigInt(input);
-		} catch (e) {
-			console.error(e);
-			output.innerHTML = 'not a number';
-			return;
-		}
-		try {
+			var number = convert(input);
 			output.innerHTML = nameInt(number);
 		} catch (e) {
 			console.error(e);
-			output.innerHTML = 'error';
+			if (e instanceof SyntaxError) {
+				output.innerHTML = 'not a number';
+			} else if (e instanceof RangeError) {
+				output.innerHTML = 'not an integer';
+			} else {
+				output.innerHTML = 'error';
+			}
+		}
+	}
+	function convert(str) {
+		if (str === '') throw SyntaxError('no input');
+		try {
+			return BigInt(str);
+		} catch (e) {
+			var num = Number(str);
+			if (isNaN(num)) throw e;
+			return BigInt(Number(str));
 		}
 	}
 	document.getElementById('input').addEventListener('keypress', event => {
