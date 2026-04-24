@@ -4,39 +4,55 @@
 	<meta charset="utf-8">
 	<title>Number Namer</title>
 	<script src="number-name.js"></script>
+	<script src="evaluate.js"></script>
 </head>
 <body style="font-family: sans-serif">
+	<span style="display: block">
+		<em>
+			Simple expressions are accepted
+			<details>
+				<dl>
+					<dt>Precedence 1</dt>
+					<dd>Parentheses: ( )</dd>
+					<dd>Scientific Notation: e/E</dd>
+					<dd>Unary Negation: -</dd>
+					<dt>Precedence 2</dt>
+					<dd>Exponentiation: ^</dd>
+					<dt>Precedence 3</dt>
+					<dd>Multiplication: *</dd>
+					<dd>Integer Division: /</dd>
+					<dd>Modulo: %</dd>
+					<dt>Precedence 4</dt>
+					<dd>Addition: +</dd>
+					<dd>Subtraction: −</dd>
+				</dl>
+				Operations in the same order of precedence will be evaluated right-to-left.
+			</details>
+		</em>
+	</span>
+	<br>
 	<input id="input" pattern="[0-9]+" maxlength="-1"></input>
 	<button onclick="getName()">Get Name</button>
+	<span id="value" style="display: none;"></span>
 	<br><br>
 	<span id="output"></span>
 </body>
 <script>
 	function getName() {
 		var input = document.getElementById('input').value;
+		var value = document.getElementById('value');
 		var output = document.getElementById('output');
+		value.style.display = 'none'; // hide
 		try {
-			var number = convert(input);
+			var number = evaluate(input);
 			output.innerHTML = nameInt(number);
+			if (number.toString() !== input) {
+				value.innerHTML = '= ' + number;
+				value.style.display = 'contents'; // show
+			}
 		} catch (e) {
 			console.error(e);
-			if (e instanceof SyntaxError) {
-				output.innerHTML = 'not a number';
-			} else if (e instanceof RangeError) {
-				output.innerHTML = 'not an integer';
-			} else {
-				output.innerHTML = 'error';
-			}
-		}
-	}
-	function convert(str) {
-		if (str === '') throw SyntaxError('no input');
-		try {
-			return BigInt(str);
-		} catch (e) {
-			var num = Number(str);
-			if (isNaN(num)) throw e;
-			return BigInt(Number(str));
+			output.innerHTML = e.message;
 		}
 	}
 	document.getElementById('input').addEventListener('keypress', event => {
