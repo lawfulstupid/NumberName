@@ -71,8 +71,8 @@ class Parser<T> {
 }
 
 const integerParser: Parser<bigint> = new Parser(str => {
-  if (!/^-?[0-9]+/.test(str)) return null;
-  const splits = str.split(/(?<=^-?[0-9]+)(?=[^0-9])/);
+  if (!/^[-+]?[0-9]+/.test(str)) return null;
+  const splits = str.split(/(?<=^[-+]?[0-9]+)(?=[^0-9])/);
   return {
     value: BigInt(splits[0]),
     remainder: splits[1] || ''
