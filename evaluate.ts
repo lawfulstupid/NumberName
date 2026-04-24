@@ -1,16 +1,32 @@
 function evaluate(str: string): bigint {
   str = str.replace(/\s+/g, '');
-  const result = exprParser.run(str);
-  console.log(result);
-  return 0n; // WIP
+  const result: Result<Expr> = exprParser.run(str);
+  if (result === null || result.remainder !== '') {
+    throw new SyntaxError('Failed to parse');
+  } else {
+    return resolve(result.value);
+  }
 }
 
 class ExprTree {
   constructor(
-    private expr1: ExprTree | bigint,
-    private op: Op,
-    private expr2: ExprTree | bigint
+    public expr1: ExprTree | bigint,
+    public op: Op,
+    public expr2: ExprTree | bigint
   ) {}
+}
+
+function resolve(value: ExprTree | bigint): bigint {
+  if (!(value instanceof ExprTree)) return value;
+  switch (value.op) {
+    case '+': return resolve(value.expr1) + resolve(value.expr2);
+    case '-': return resolve(value.expr1) - resolve(value.expr2);
+    case '*': return resolve(value.expr1) * resolve(value.expr2);
+    case '/': return resolve(value.expr1) / resolve(value.expr2);
+    case '%': return resolve(value.expr1) % resolve(value.expr2);
+    case '^': return resolve(value.expr1) ** resolve(value.expr2);
+    default: throw new SyntaxError('Unknown operator: ' + value.op);
+  }
 }
 
 type Expr = ExprTree | bigint;
