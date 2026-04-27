@@ -177,7 +177,7 @@ const precParsers: Array<Parser<Expr>> = [
 function termsParser(opParser: Parser<Op>, termParser: Parser<Expr>, identity: bigint | null = null) {
   const firstTermParser = identity === null ? termParser : opParser.next(op => {
     return termParser.next(term => new ExprTree(identity, op, term));
-  })
+  }, () => termParser)
 
   return firstTermParser.next(firstTerm => {
     return Parser.repeat(0, opParser.next(op => {
