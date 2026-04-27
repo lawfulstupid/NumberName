@@ -112,12 +112,6 @@ const naturalParser: Parser<bigint> = digitsParser.next((mantissa: bigint) => {
   }, () => mantissa);
 });
 
-const integerParser: Parser<bigint> = signParser.next(sign => {
-  return naturalParser.next(value => {
-    return value * sign;
-  });
-});
-
 const op1Parser: Parser<Op> = Parser.match('^').next(op => {
   switch (op) {
     case '^': return '^';
@@ -149,7 +143,7 @@ const precParsers: Array<Parser<Expr>> = [
         return prec3;
       })
     })
-  }, () => integerParser),
+  }, () => naturalParser),
   Parser.match('').next(() => {
     return precParsers[0].next(expr1 => {
       return op1Parser.next(op => {
@@ -175,6 +169,12 @@ const precParsers: Array<Parser<Expr>> = [
           return new ExprTree(expr1, op, expr2);
         })
       }, () => expr1)
+    }, () => {
+      return op3Parser.next(op => {
+        return precParsers[3].next(expr => {
+          return new ExprTree(0n, op, expr);
+        })
+      })
     })
   })
 ]
@@ -190,7 +190,6 @@ const exprParser: Parser<Expr> = precParsers[3];
 <prec1> ::= <prec0> '^' <prec1> | <prec0>
 <prec0> ::= '(' <expr> ')' | <number>
 
-<integer> ::= <sign><natural>
 <natural> ::= <digits> | <digits><e><sign><digits>
 <sign> ::= '+' | '-' | ''
 <e> ::= 'e' | 'E'
