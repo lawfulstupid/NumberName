@@ -3,15 +3,12 @@ function evaluate(str: string): bigint | { exp: bigint } {
   const result: Result<Expr> = exprParser.run(str);
   if (result === null || result.remainder !== '') {
     throw new SyntaxError('Failed to parse');
-  } else try {
-    return resolve(result.value);
+  }
+
+  try {
+    return { exp: resolveLog10(result.value) };
   } catch (err) {
-    if (err instanceof RangeError) {
-      const exp = resolveLog10(result.value);
-      return { exp };
-    } else {
-      throw err;
-    }
+    return resolve(result.value);
   }
 }
 
