@@ -8,6 +8,14 @@ function nameInt(n: bigint): string {
   }
 }
 
+function nameExponent(n: bigint): string {
+  const p = n % 3n;
+  const l = n / 3n - 1n;
+  const prefix = p === 0n ? 'one' : p === 1n ? 'ten' : 'one hundred';
+  const largeName = nameLarge(l);
+  return prefix + ' ' + largeName;
+}
+
 function divMod(a: bigint, m: bigint): [bigint, bigint] {
   return [a / m, a % m];
 }

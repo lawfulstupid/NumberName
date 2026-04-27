@@ -45,10 +45,16 @@
 		value.style.display = 'none'; // hide
 		try {
 			var number = evaluate(input);
-			output.innerHTML = nameInt(number);
-			if (number.toString() !== input) {
-				value.innerHTML = '= ' + number;
+			if (number.exp) {
+				value.innerHTML = '= 1E' + number.exp;
 				value.style.display = 'contents'; // show
+				output.innerHTML = nameExponent(number.exp);
+			} else {
+				if (number.toString() !== input) {
+					value.innerHTML = '= ' + number;
+					value.style.display = 'contents'; // show
+				}
+				output.innerHTML = nameInt(number);
 			}
 		} catch (e) {
 			console.error(e);

@@ -1,10 +1,17 @@
-function evaluate(str: string): bigint {
+function evaluate(str: string): bigint | { exp: bigint } {
   str = str.replace(/\s+/g, '');
   const result: Result<Expr> = exprParser.run(str);
   if (result === null || result.remainder !== '') {
     throw new SyntaxError('Failed to parse');
-  } else {
+  } else try {
     return resolve(result.value);
+  } catch (err) {
+    if (err instanceof RangeError) {
+      const exp = resolveLog10(result.value);
+      return { exp };
+    } else {
+      throw err;
+    }
   }
 }
 
@@ -26,6 +33,18 @@ function resolve(value: ExprTree | bigint): bigint {
     case '%': return resolve(value.expr1) % resolve(value.expr2);
     case '^': return resolve(value.expr1) ** resolve(value.expr2);
     default: throw new SyntaxError('Unknown operator: ' + value.op);
+  }
+}
+
+function resolveLog10(value: Expr): bigint {
+  if (!(value instanceof ExprTree)) {
+    const s = value.toString(10);
+    return BigInt(s.length + Math.log10(Number('0.' + s.substring(0, 15))));
+  } else switch (value.op) {
+    case '*': return resolve(new ExprTree(resolveLog10(value.expr1), '+', resolveLog10(value.expr2)));
+    case '/': return resolve(new ExprTree(resolveLog10(value.expr1), '-', resolveLog10(value.expr2)));
+    case '^': return resolve(new ExprTree(resolveLog10(value.expr1), '*', value.expr2));
+    default: return resolve(value);
   }
 }
 
