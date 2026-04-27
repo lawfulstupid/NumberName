@@ -171,11 +171,15 @@ const precParsers: Array<Parser<Expr>> = [
     })
   }),
   Parser.match('').next(() => termsParser(op2Parser, precParsers[1])),
-  Parser.match('').next(() => termsParser(op3Parser, precParsers[2]))
+  Parser.match('').next(() => termsParser(op3Parser, precParsers[2], 0n))
 ]
 
-function termsParser(opParser: Parser<Op>, termParser: Parser<Expr>) {
-  return termParser.next(firstTerm => {
+function termsParser(opParser: Parser<Op>, termParser: Parser<Expr>, identity: bigint | null = null) {
+  const firstTermParser = identity === null ? termParser : opParser.next(op => {
+    return termParser.next(term => new ExprTree(identity, op, term));
+  })
+
+  return firstTermParser.next(firstTerm => {
     return Parser.repeat(0, opParser.next(op => {
       return termParser.next(term => ({ op, term }))
     })).next(terms => {
