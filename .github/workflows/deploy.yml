@@ -36,7 +36,11 @@ jobs:
       - name: Substitute version number
         run: |
           VERSION=$(npm pkg get version)
-          sed -i "s/#VERSION/${VERSION//\"/}/" dist/index.html
+          VERSION=${VERSION//\"/}
+          sed -i -r "s/#VERSION/$VERSION/;s/(src=\"(\w|-)+)\.js\"/\1-$VERSION.js\"/" dist/index.html
+          for SCRIPT in dist/*.js; do
+            mv $SCRIPT ${SCRIPT/.js/-$VERSION.js}
+          done
       - name: Set up pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
