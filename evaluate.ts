@@ -86,21 +86,36 @@ class Parser<T> {
   }
 }
 
-const integerParser: Parser<bigint> = new Parser(str => {
-  if (!/^[-+]?[0-9]+/.test(str)) return null;
-  const splits = str.split(/(?<=^[-+]?[0-9]+)(?=[^0-9])/);
+const signParser: Parser<bigint> = Parser.match('+', '-', '').next((sign: string) => {
+  switch (sign) {
+    case '-': return -1n;
+    default: return 1n;
+  }
+});
+
+const digitsParser: Parser<bigint> = new Parser(str => {
+  if (!/^[0-9]+/.test(str)) return null;
+  const splits = str.split(/(?<=^[0-9]+)(?=[^0-9])/);
   return {
     value: BigInt(splits[0]),
     remainder: splits[1] || ''
   }
 });
 
-const numberParser: Parser<bigint> = integerParser.next((mantissa: bigint) => {
+const naturalParser: Parser<bigint> = digitsParser.next((mantissa: bigint) => {
   return Parser.match('e', 'E').next(() => {
-    return integerParser.next((exponent: bigint) => {
-      return mantissa * (10n ** exponent)
-    })
+    return signParser.next((sign: bigint) => {
+      return digitsParser.next(exponent => {
+        return mantissa * (10n ** (exponent * sign));
+      });
+    });
   }, () => mantissa);
+});
+
+const integerParser: Parser<bigint> = signParser.next(sign => {
+  return naturalParser.next(value => {
+    return value * sign;
+  });
 });
 
 const op1Parser: Parser<Op> = Parser.match('^').next(op => {
@@ -134,7 +149,7 @@ const precParsers: Array<Parser<Expr>> = [
         return prec3;
       })
     })
-  }, () => numberParser),
+  }, () => integerParser),
   Parser.match('').next(() => {
     return precParsers[0].next(expr1 => {
       return op1Parser.next(op => {
@@ -175,9 +190,10 @@ const exprParser: Parser<Expr> = precParsers[3];
 <prec1> ::= <prec0> '^' <prec1> | <prec0>
 <prec0> ::= '(' <expr> ')' | <number>
 
-<number> ::= <integer> | <integer><e><integer>
+<integer> ::= <sign><natural>
+<natural> ::= <digits> | <digits><e><sign><digits>
+<sign> ::= '+' | '-' | ''
 <e> ::= 'e' | 'E'
-<integer> ::= <digits> | -<digits>
 <digits> ::= <digit> | <digit><digits>
 <digit> ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
 */
