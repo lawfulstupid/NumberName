@@ -41,7 +41,7 @@ function resolveLog10(value: Expr): bigint {
     case '*': return resolve(new ExprTree(resolveLog10(value.expr1), '+', resolveLog10(value.expr2)));
     case '/': return resolve(new ExprTree(resolveLog10(value.expr1), '-', resolveLog10(value.expr2)));
     case '^': return resolve(new ExprTree(resolveLog10(value.expr1), '*', value.expr2));
-    default: return resolve(value);
+    default: return resolveLog10(resolve(value));
   }
 }
 
