@@ -68,20 +68,5 @@
 	document.getElementById('input').addEventListener('keypress', event => {
 		if (event.key === 'Enter') getName();
 	});
-
-	window.onload = function () {
-		const txtFile = new XMLHttpRequest();
-		console.log('asdasd')
-		txtFile.open("GET", "version.txt", true);
-		txtFile.send(null);
-		txtFile.onreadystatechange = function() {
-			if (txtFile.readyState === 4 && txtFile.status == 200) {
-				allText = txtFile.responseText;
-			}
-			document.getElementById('version').innerHTML = txtFile.responseText;
-		}
-
-	}
-
 </script>
 </html>
