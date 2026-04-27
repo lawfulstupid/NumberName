@@ -1,6 +1,6 @@
 {
   "name": "number-name",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "main": "number-name.ts",
   "license": "ISC",
   "scripts": {
