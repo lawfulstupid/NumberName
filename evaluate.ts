@@ -7,7 +7,8 @@ function evaluate(str: string): bigint | { exp: bigint } {
 
   try {
     console.log('Resolving log 10')
-    return { exp: resolveLog10(result.value) };
+    const exp = resolveLog10(result.value);
+    return exp <= 10n ? 10n ** exp : { exp };
   } catch (err) {
     console.log('Resolving normally')
     return resolve(result.value);

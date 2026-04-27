@@ -9,6 +9,7 @@ function nameInt(n: bigint): string {
 }
 
 function nameExponent(n: bigint): string {
+  if (n <= 3n) return nameInt(10n ** n);
   const p = n % 3n;
   const l = n / 3n - 1n;
   const prefix = p === 0n ? 'one' : p === 1n ? 'ten' : 'one hundred';
