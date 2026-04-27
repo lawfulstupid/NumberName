@@ -6,8 +6,10 @@ function evaluate(str: string): bigint | { exp: bigint } {
   }
 
   try {
+    console.log('Resolving log 10')
     return { exp: resolveLog10(result.value) };
   } catch (err) {
+    console.log('Resolving normally')
     return resolve(result.value);
   }
 }

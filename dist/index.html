@@ -44,6 +44,7 @@
 		value.style.display = 'none'; // hide
 		try {
 			var number = evaluate(input);
+			console.log('Evaluated:', number);
 			if (number.exp) {
 				value.innerHTML = '= 1E' + number.exp;
 				value.style.display = 'contents'; // show
