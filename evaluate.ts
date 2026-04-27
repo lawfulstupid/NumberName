@@ -59,6 +59,10 @@ class Parser<T> {
     return new Parser(str => ({ value, remainder: str }));
   }
 
+  static fail<T>(): Parser<T> {
+    return new Parser(() => null);
+  }
+
   static match(...values: string[]): Parser<string> {
     return new Parser(str => {
       for (const value of values) {
@@ -68,6 +72,16 @@ class Parser<T> {
       }
       return null;
     });
+  }
+
+  static repeat<T>(min: number, parser: Parser<T>): Parser<Array<T>> {
+    return parser.next(head => {
+      return Parser.repeat(Math.max(0, min - 1), parser).next(tail => {
+        return [head, ...tail];
+      })
+    }, () => {
+      return min <= 0 ? Parser.pure([]) : Parser.fail();
+    })
   }
 
   next<S>(getNextParser: (token: T) => S | Parser<S>, getFailover?: () => S | Parser<S>): Parser<S> {
@@ -153,31 +167,23 @@ const precParsers: Array<Parser<Expr>> = [
       }, () => expr1);
     })
   }),
-  Parser.match('').next(() => {
-    return precParsers[1].next(expr1 => {
-      return op2Parser.next(op => {
-        return precParsers[2].next(expr2 => {
-          return new ExprTree(expr1, op, expr2);
-        })
-      }, () => expr1)
-    })
-  }),
-  Parser.match('').next(() => {
-    return precParsers[2].next(expr1 => {
-      return op3Parser.next(op => {
-        return precParsers[3].next(expr2 => {
-          return new ExprTree(expr1, op, expr2);
-        })
-      }, () => expr1)
-    }, () => {
-      return op3Parser.next(op => {
-        return precParsers[3].next(expr => {
-          return new ExprTree(0n, op, expr);
-        })
-      })
-    })
-  })
+  Parser.match('').next(() => termsParser(op2Parser, precParsers[1])),
+  Parser.match('').next(() => termsParser(op3Parser, precParsers[2]))
 ]
+
+function termsParser(opParser: Parser<Op>, termParser: Parser<Expr>) {
+  return termParser.next(firstTerm => {
+    return Parser.repeat(0, opParser.next(op => {
+      return termParser.next(term => ({ op, term }))
+    })).next(terms => {
+      let expr: Expr = firstTerm;
+      for (const { op, term } of terms) {
+        expr = new ExprTree(expr, op, term);
+      }
+      return expr;
+    });
+  })
+}
 
 const exprParser: Parser<Expr> = precParsers[3];
 
